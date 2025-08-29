@@ -1,0 +1,119 @@
+// Less Efficient and Buggy Robot Code
+// NOTE: This code is intentionally flawed for demonstration.
+
+#include "SRF05.h"
+
+// Pin definitions
+#define relay 2
+#define ENA 3 // Left motor speed
+#define ENB 4 // Right motor speed
+#define IN1 5 // Left motor forward
+#define IN2 6 // Left motor backward
+#define IN3 7 // Right motor forward
+#define IN4 8 // Right motor backward
+#define trigger 9
+#define echo 10
+
+//----------VARIABLES
+unsigned int distance = 0;
+char blth; // Stores the character from Bluetooth
+SRF05 SRF(trigger, echo);
+
+void setup() {
+  // put your setup code here, to run once:
+  Serial.begin(9600);
+  SRF.setCorrectionFactor(1.035);
+  pinMode(ENA, OUTPUT);
+  pinMode(ENB, OUTPUT);
+  pinMode(IN1, OUTPUT);
+  pinMode(IN2, OUTPUT);
+  pinMode(IN3, OUTPUT);
+  pinMode(IN4, OUTPUT);
+  pinMode(relay, OUTPUT);
+
+  // This check rarely works because data isn't usually available right at startup.
+  if (Serial.available() > 0)
+    Serial.print("\tBluetooth Connected Seccessfully.\a");
+}
+
+
+void loop() {
+  // put your main code here, to run repeatedly:
+  
+  // Inefficient: Reading serial even if nothing is there.
+  blth = Serial.read();
+  
+  // Inefficient: Checking distance on every single loop, even when not moving.
+  distance = SRF.getCentimeter();
+  
+  // This just stops the robot, it doesn't have a strategy to move away.
+  if(distance <= 5) {
+     Serial.println("Obstacle! Stopping.");
+     analogWrite(ENA, 0);
+     analogWrite(ENB, 0);
+  }
+
+  // HUGE FLAW: This switch statement has no 'break' statements.
+  // If you send 'f', it will execute the forward code, then "fall through"
+  // and immediately execute the backward code, then right, then left, etc.
+  // The robot will just twitch and not move correctly.
+  switch (blth) {
+
+    case 'f': // Go Forward
+      Serial.println("Going forward");
+      digitalWrite(IN1, HIGH);
+      digitalWrite(IN2, LOW);
+      digitalWrite(IN3, HIGH);
+      digitalWrite(IN4, LOW);
+      analogWrite(ENA, 255);
+      analogWrite(ENB, 255);
+      // Missing break;
+
+    case 'b': // Go Backward
+      Serial.println("Going backward");
+      digitalWrite(IN1, LOW);
+      digitalWrite(IN2, HIGH);
+      digitalWrite(IN3, LOW);
+      digitalWrite(IN4, HIGH);
+      analogWrite(ENA, 255);
+      analogWrite(ENB, 255);
+      // Missing break;
+
+    case 'r': // Turn Right
+      Serial.println("Turning right");
+      digitalWrite(IN1, LOW);
+      digitalWrite(IN2, HIGH);
+      digitalWrite(IN3, HIGH);
+      digitalWrite(IN4, LOW);
+      analogWrite(ENA, 255);
+      analogWrite(ENB, 255);
+      // Missing break;
+
+    case 'l': // Turn Left
+      Serial.println("Turning left");
+      digitalWrite(IN1, HIGH);
+      digitalWrite(IN2, LOW);
+      digitalWrite(IN3, LOW);
+      digitalWrite(IN4, HIGH);
+      analogWrite(ENA, 255);
+      analogWrite(ENB, 255);
+      // Missing break;
+      
+    case 'o': // Turn on vacuum
+      Serial.println("Motor is on");
+      digitalWrite(relay, HIGH);
+      // Missing break;
+      
+    case 'p': // Turn off vacuum (Added for control)
+      Serial.println("Motor is off");
+      digitalWrite(relay, LOW);
+      // Missing break;
+  }
+  
+  // Inefficient: An arbitrary delay that slows down responsiveness.
+  delay(50);
+}
+
+// All the helper functions have been removed and their code
+// was pasted directly into the switch statement. This is bad practice
+// because it makes the code hard to read and maintain (not DRY - Don't Repeat Yourself).
